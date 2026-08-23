@@ -4450,45 +4450,36 @@ function viewSiteOnMap(id){
     return provider;
   }
 
-  // Google login — REDIRECT primary (Netlify/mobile reliable), popup optional desktop
+  // Google login — always show real error (alert) so setup can be fixed
   window.loginWithGoogle = function () {
     const msg = document.getElementById('userProfileMsg');
     const a = window.__fbAuth || auth;
     if (!a) {
-      if (msg) { msg.className = 'small mt-2 text-danger'; msg.textContent = 'Auth not ready — page reload করুন'; }
+      alert('Firebase Auth load হয়নি। Page reload করুন।');
       return;
     }
     if (msg) { msg.textContent = 'Google এ যাচ্ছে…'; msg.className = 'small mt-2 text-muted'; }
 
     const provider = makeGoogleProvider();
-    const isMobile = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
-
-    // Mobile / small screen: redirect only (popup almost always fails)
-    if (isMobile || window.innerWidth < 768) {
-      signInWithRedirect(a, provider).catch(function(e){
-        console.error(e);
-        if (msg) {
-          msg.className = 'small mt-2 text-danger';
-          msg.textContent = googleErrText(e);
-        }
-      });
-      return;
-    }
-
-    // Desktop: try popup, on any fail → redirect
+    // Prefer popup first (user gesture). If fail → redirect.
     signInWithPopup(a, provider).then(function(result){
       finishGoogleUser(result.user);
     }).catch(function(popupErr){
-      console.warn('popup', popupErr);
-      const code = popupErr && popupErr.code ? popupErr.code : '';
-      if (code === 'auth/unauthorized-domain' || code === 'auth/operation-not-allowed') {
-        if (msg) { msg.className = 'small mt-2 text-danger'; msg.innerHTML = googleErrText(popupErr); }
+      console.warn('Google popup error', popupErr);
+      const code = (popupErr && popupErr.code) || '';
+      const text = googleErrText(popupErr);
+      if (msg) { msg.className = 'small mt-2 text-danger'; msg.innerHTML = text; }
+      // Config errors: don't redirect, show fix
+      if (code === 'auth/unauthorized-domain' || code === 'auth/operation-not-allowed' || code === 'auth/api-key-not-valid') {
+        alert(text.replace(/<[^>]+>/g, ''));
         return;
       }
-      // fallback redirect
-      if (msg) msg.textContent = 'Redirect mode…';
+      // Popup blocked / closed → try redirect
+      if (msg) msg.textContent = 'Redirect to Google…';
       signInWithRedirect(a, provider).catch(function(e){
-        if (msg) { msg.className = 'small mt-2 text-danger'; msg.textContent = googleErrText(e); }
+        const t = googleErrText(e);
+        if (msg) { msg.className = 'small mt-2 text-danger'; msg.innerHTML = t; }
+        alert(t.replace(/<[^>]+>/g, ''));
       });
     });
   };
@@ -4496,14 +4487,18 @@ function viewSiteOnMap(id){
   function googleErrText(e){
     const code = (e && e.code) || '';
     if (code === 'auth/unauthorized-domain') {
-      return '❌ Domain allow নয়। Firebase → Authentication → Settings → Authorized domains → আপনার netlify.app add করুন';
+      return '❌ Domain allowlist-এ নেই।\n\nFirebase Console → Authentication → Settings → Authorized domains → Add:\n\nrafinoorislam23-coder.github.io\n\nতারপর 1 মিনিট অপেক্ষা করে আবার try।';
     }
     if (code === 'auth/operation-not-allowed') {
-      return '❌ Google Sign-in Enable করুন: Firebase → Authentication → Sign-in method → Google → Enable';
+      return '❌ Google Sign-in বন্ধ আছে।\n\nFirebase → Authentication → Sign-in method → Google → Enable → Save';
     }
-    if (code === 'auth/popup-closed-by-user') return 'Popup বন্ধ হয়েছে — আবার try করুন';
-    if (code === 'auth/network-request-failed') return 'নেটওয়ার্ক সমস্যা — আবার try';
-    return 'Google fail: ' + (code || (e && e.message) || e) + ' · Token দিয়ে login করুন';
+    if (code === 'auth/api-key-not-valid.-please-pass-a-valid-api-key.' || code === 'auth/api-key-not-valid') {
+      return '❌ Firebase API key invalid। Project config চেক করুন।';
+    }
+    if (code === 'auth/popup-closed-by-user') return 'Popup বন্ধ করেছেন — আবার Google বাটন চাপুন।';
+    if (code === 'auth/popup-blocked') return 'Browser popup block করেছে — allow করুন অথবা redirect হবে।';
+    if (code === 'auth/network-request-failed') return 'নেটওয়ার্ক সমস্যা — internet চেক করুন।';
+    return 'Google fail: ' + (code || (e && e.message) || e) + '\n\nএখন Token দিয়ে login করুন: RAFINOOR1';
   }
 
   // After redirect back from Google
