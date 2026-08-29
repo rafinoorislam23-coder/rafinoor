@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RAFINOOR Telecom Tower Operations System</title>
+    <meta name="theme-color" content="#0f172a">
+    <meta name="description" content="RAFINOOR Live Map, Team Tracking, Site Management">
+    <meta name="google-signin-client_id" content="">
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/1f4e1.png">
+    <script>
+    (function(){
+      function isSandboxSecErr(msg){
+        msg = String(msg || '');
+        return msg.indexOf('SecurityError') !== -1 || msg.indexOf('cross-origin frame') !== -1 || msg.indexOf('sandboxed') !== -1 || msg.indexOf("Failed to read a named property 'document'") !== -1 || msg.indexOf('localStorage') !== -1 || msg.indexOf('sessionStorage') !== -1 || msg.indexOf('Blocked a frame') !== -1 || msg.indexOf('origin "null"') !== -1 || msg.indexOf("origin 'null'") !== -1;
+      }
+      window.addEventListener('error', function(ev){
+        if (isSandboxSecErr(ev && ev.message)) { try { ev.preventDefault(); ev.stopImmediatePropagation(); } catch(e){} return true; }
+      }, true);
+      window.addEventListener('unhandledrejection', function(ev){
+        var r = ev && ev.reason; var msg = r && (r.message || String(r)) || '';
+        if (isSandboxSecErr(msg)) { try { ev.preventDefault(); } catch(e){} }
+      });
+      var _cerr = console.error;
+      console.error = function(){
+        try { var a0 = arguments[0]; var s = (a0 && a0.message) ? a0.message : String(a0 || ''); if (isSandboxSecErr(s)) return; } catch(e){}
+        return _cerr.apply(console, arguments);
+      };
+    })();
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
+    <style>
+        :root { --primary-color: #2563eb; --primary-hover: #1d4ed8; --accent-color: #3b82f6; --dark-bg: #0f172a; --success-color: #10b981; --warning-color: #f59e0b; --info-color: #0ea5e9; --danger-color: #ef4444; --surface-color: #ffffff; --bg-color: #f8fafc; --text-main: #334155; --text-muted: #64748b; --border-radius-lg: 20px; --border-radius-md: 12px; --shadow-sm: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03); --shadow-md: 0 10px 25px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.03); --shadow-lg: 0 20px 30px -5px rgba(0, 0, 0, 0.1); }
+        body { background: var(--bg-color); font-family: 'Inter', sans-serif; color: var(--text-main); -webkit-font-smoothing: antialiased; }
+        .app-header { background: linear-gradient(135deg, var(--dark-bg) 0%, #1e293b 100%); color: white; padding: 1.25rem 2.5rem; border-radius: 0 0 var(--border-radius-lg) var(--border-radius-lg); box-shadow: var(--shadow-md); margin-bottom: 30px; border-bottom: 2px solid rgba(255,255,255,0.05); }
+        #map-container { position: relative; width: 100%; height: 65vh; border-radius: var(--border-radius-lg); overflow: hidden; box-shadow: var(--shadow-lg); border: 6px solid var(--surface-color); transition: all 0.3s ease; }
+        #map { height: 100%; width: 100%; }
+        .map-search-box { position: absolute; top: 20px; left: 60px; z-index: 1000; width: 320px; background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(12px); padding: 10px 20px; border-radius: 50px; border: 1px solid rgba(37, 99, 235, 0.2); box-shadow: var(--shadow-md); display: flex; align-items: center; transition: all 0.3s ease; }
+        .map-search-box:focus-within { box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.15); border-color: var(--primary-color); }
+        .map-search-box input { border: none; background: transparent; outline: none; width: 100%; font-size: 14px; font-weight: 500; pointer-events: auto !important; user-select: text !important; }
+        .voice-btn { border: none; background: rgba(37, 99, 235, 0.1); cursor: pointer; font-size: 16px; padding: 8px; border-radius: 50%; transition: all 0.2s ease; display: flex; align-items: center; justify-content: center; }
+        .voice-btn:hover { transform: scale(1.1); background: rgba(37, 99, 235, 0.2); }
+        .locate-btn { position: absolute; bottom: 30px; right: 25px; z-index: 1000; background: var(--surface-color); color: var(--primary-color); border: none; width: 50px; height: 50px; border-radius: 50%; cursor: pointer; font-size: 22px; transition: all 0.3s ease; box-shadow: var(--shadow-md); display: flex; align-items: center; justify-content: center; }
+        .locate-btn:hover { transform: scale(1.05) translateY(-5px); background: var(--primary-color); color: white; }
+        .data-card { background: var(--surface-color); border-radius: var(--border-radius-lg); padding: 25px; box-shadow: var(--shadow-sm); margin-top: 25px; border: 1px solid rgba(0,0,0,0.03); transition: transform 0.3s ease, box-shadow 0.3s ease; }
+        .table-responsive { max-height: 500px; border-radius: var(--border-radius-md); border: 1px solid #e2e8f0; overflow-y: auto; }
+        .table { margin-bottom: 0; }
+        .table thead { background: #f8fafc; color: var(--text-muted); font-size: 13px; text-transform: uppercase; }
+        .table thead th { border-bottom: 2px solid #e2e8f0; padding: 15px; font-weight: 600; }
+        .table tbody td { padding: 15px; vertical-align: middle; border-bottom: 1px solid #f1f5f9; font-size: 14px; }
+        .modal-content { border-radius: 24px; border: none; box-shadow: var(--shadow-lg); }
+        .modal-header { border-bottom: 1px solid rgba(0,0,0,0.05); padding: 20px 30px; }
+        .modal-body { padding: 30px; background: #f8fafc; }
+        /* High Z-Index for PG Invoice modal to fix key stealing */
+        #pgInvoiceColumnsModal { z-index: 9999 !important; }
+        #mapSearchInput, #mainSearchInput, #adminSearchInput { pointer-events: auto !important; user-select: text !important; -webkit-user-select: text !important; ime-mode: active; opacity: 1 !important; color: inherit !important; }
+    </style>
+</head>
+<body>
+<div class="container-fluid px-md-4">
+    <header class="app-header d-flex justify-content-between align-items-center flex-wrap gap-3">
+        <div>
+            <h3 class="m-0 fw-bold" style="letter-spacing: -0.5px;">📡 RAFINOOR <span style="font-weight: 300; opacity: 0.9;">Tower Ops</span></h3>
+            <span class="badge bg-primary mt-1" style="font-weight: 500;">Telecom Tower Operations System</span>
+        </div>
+        <div class="d-flex gap-2 align-items-center flex-wrap">
+            <span id="cloudSyncStatus" class="badge bg-secondary rounded-pill px-3 py-2 fw-medium">☁️ Standby</span>
+            <button class="btn btn-outline-light btn-sm fw-semibold rounded-pill px-3 shadow-sm" onclick="openFuelDashboard()" title="My Fuel Balance">⛽ My Fuel</button>
+            <button class="btn btn-sm fw-bold rounded-pill px-3 shadow-sm" onclick="requestAdminPanel()" style="background:linear-gradient(135deg,#0f172a,#2563eb);color:#fff;border:0">🛡️ Admin</button>
+            <button type="button" class="btn btn-danger btn-sm fw-bold rounded-pill px-3 shadow-sm" onclick="logoutAccount()">🚪 Logout</button>
+        </div>
+    </header>
+
+    <div id="map-container">
+        <div class="map-search-box">
+            <!-- Composition events prevent dropping letters -->
+            <input type="text" id="mapSearchInput" placeholder="🔍 Site ID Search..." autocomplete="off" autocapitalize="off" spellcheck="false" oninput="syncSearch(this.value, this)" oncompositionend="syncSearch(this.value, this)">
+            <button class="voice-btn" id="voiceBtn" onclick="startVoiceRecognition()">🎙️</button>
+        </div>
+        <button class="locate-btn" onclick="locateUser()">📍</button>
+        <div id="map"></div>
+    </div>
+
+    <div class="row mt-4 g-3 align-items-center">
+        <div class="col-md-4">
+            <div class="input-group" style="box-shadow: var(--shadow-sm); border-radius: 50px; overflow: hidden;">
+                <span class="input-group-text bg-white border-0 px-4">🔍</span>
+                <input type="text" id="mainSearchInput" class="form-control border-0 py-3" placeholder="Search by Site ID..." autocomplete="off" autocapitalize="off" spellcheck="false" oninput="syncSearch(this.value, this)" oncompositionend="syncSearch(this.value, this)">
+            </div>
+        </div>
+    </div>
+
+    <div class="row mt-4 g-4" id="teamDashboardArea"></div>
+
+    <div class="data-card mb-5">
+        <div class="table-responsive">
+            <table class="table align-middle border-0">
+                <thead class="sticky-top">
+                    <tr class="text-center">
+                        <th>SL</th><th>Status</th><th>Site ID</th><th>Assigned To</th><th>Address</th><th>Action</th>
+                    </tr>
+                </thead>
+                <tbody id="siteTable"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- ================= FUEL DASHBOARD MODAL ================= -->
+<div class="modal fade" id="fuelDashboardModal" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-dark text-white">
+                <h5 class="modal-title fw-bold">⛽ Fuel Management</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <!-- Admin View -->
+                <div id="fuelAdminSection" style="display:none;">
+                    <div class="card mb-3 border-primary">
+                        <div class="card-body">
+                            <h6 class="text-primary fw-bold">Global Stock (Admin Tank)</h6>
+                            <h3 id="globalFuelStockDisplay">0 L</h3>
+                            <div class="input-group mt-2">
+                                <input type="text" id="adminStockInput" class="form-control" placeholder="Amount (e.g. 10.5 or 10,5)">
+                                <button class="btn btn-success" onclick="modifyGlobalStock(true)">+ Add</button>
+                                <button class="btn btn-danger" onclick="modifyGlobalStock(false)">- Reduce</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card border-info">
+                        <div class="card-body">
+                            <h6 class="text-info fw-bold">Allocate to Operator</h6>
+                            <div class="input-group">
+                                <select id="fuelOperatorSelect" class="form-select"></select>
+                                <input type="text" id="fuelAllocateInput" class="form-control" placeholder="Litres (neg to take back)">
+                                <button class="btn btn-primary" onclick="allocateFuel()">Allocate</button>
+                            </div>
+                            <small class="text-muted">Use negative values (e.g. -10) to take back stock from operator.</small>
+                        </div>
+                    </div>
+                </div>
+                <!-- User View -->
+                <div class="mt-4">
+                    <h6 class="fw-bold">My Fuel Wallet</h6>
+                    <table class="table table-bordered">
+                        <tr><th>Total Added</th><td id="myFuelAdded">0 L</td></tr>
+                        <tr><th>Total Used (PG Runs)</th><td id="myFuelUsed">0 L</td></tr>
+                        <tr class="table-info"><th>Current Balance</th><td id="myFuelBalance" class="fw-bold">0 L</td></tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ================= PG INVOICE COLUMNS MODAL ================= -->
+<div class="modal fade" id="pgInvoiceColumnsModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog modal-xl modal-dialog-centered">
+        <div class="modal-content" style="z-index: 9999;" onkeydown="event.stopPropagation()">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title fw-bold">⚙️ Customize PG Invoice Columns</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="d-flex justify-content-between mb-3">
+                    <button class="btn btn-success" onclick="addInvoiceColumn()">+ Add Column</button>
+                    <button class="btn btn-warning" onclick="resetInvoiceColumns()">🔄 Reset Default</button>
+                    <button class="btn btn-primary fw-bold" onclick="saveInvoiceColumns()">💾 Save Layout</button>
+                </div>
+                <div class="table-responsive" style="max-height: 400px;">
+                    <table class="table table-sm table-bordered">
+                        <thead class="table-dark">
+                            <tr>
+                                <th style="width: 50px;">Order</th>
+                                <th>Column Header Name</th>
+                                <th>Formula / Mapping Data</th>
+                                <th style="width: 80px;">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="invoiceColumnsTableBody">
+                            <!-- Populated via JS -->
+                        </tbody>
+                    </table>
+                </div>
+                <div class="alert alert-info small mt-2">
+                    <strong>Formula Examples:</strong> Use brackets for keys: <code>{unitPrice}*{claimQty}</code>, <code>{totalRh}*2</code>. Normal keys: <code>{siteId}</code>, <code>{trNo}</code>.
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let sites = [];
+let fuelWallets = {};
+let fuelStock = 0;
+let userRole = "ADMIN"; // Defaulting for demo purposes
+let currentUser = "Admin";
+const defaultColumns = [
+    {name: "S/N", formula: "{sn}"},
+    {name: "DHALY OFFICE", formula: "{office}"},
+    {name: "CATEGORY(PGR/GPM..)", formula: "{category}"},
+    {name: "TR NO", formula: "{trNo}"},
+    {name: "SITE ID", formula: "{siteId}"},
+    {name: "SITE ID (GENERIC)", formula: "{siteIdGeneric}"},
+    {name: "NOTIFICATION DATE", formula: "{notifDate}"},
+    {name: "NOTIFICATION TIME", formula: "{notifTime}"},
+    {name: "SEVERITY (H/M/L)", formula: "{severity}"},
+    {name: "TOTAL COST", formula: "{unitPrice}*{claimQty}"} // Example formula
+];
+let savedColumns = JSON.parse(localStorage.getItem("pgInvoiceColumns")) || defaultColumns;
+
+function initMap() { /* Map init logic */ }
+function renderSiteTable() { /* Table logic */ }
+function renderTeamCards() { /* Team card logic */ }
+
+// SEARCH FIX: Site ID only, composition-aware
+let isComposing = false;
+document.addEventListener('compositionstart', () => isComposing = true);
+document.addEventListener('compositionend', () => isComposing = false);
+
+function syncSearch(val, el) {
+    if (isComposing) return;
+    document.getElementById('mapSearchInput').value = val;
+    document.getElementById('mainSearchInput').value = val;
+    syncSearchNow(val.trim().toUpperCase());
+}
+
+function syncSearchNow(q) {
+    // Exact Site ID matching only, no address/name checking
+    const filtered = sites.filter(s => !q || String(s.SiteID || '').toUpperCase().includes(q));
+    // render site list based on filtered
+    console.log("Filtered sites by ID:", filtered.length);
+}
+
+// FUEL MODULE LOGIC
+function openFuelDashboard() {
+    if (userRole === "ADMIN" || userRole === "SUPER_ADMIN") {
+        document.getElementById('fuelAdminSection').style.display = 'block';
+        document.getElementById('globalFuelStockDisplay').innerText = fuelStock + " L";
+        // populate fuelOperatorSelect...
+    }
+    
+    let myWallet = fuelWallets[currentUser] || { added: 0, used: 0 };
+    document.getElementById('myFuelAdded').innerText = myWallet.added + " L";
+    document.getElementById('myFuelUsed').innerText = myWallet.used + " L";
+    document.getElementById('myFuelBalance').innerText = (myWallet.added - myWallet.used).toFixed(2) + " L";
+
+    new bootstrap.Modal(document.getElementById('fuelDashboardModal')).show();
+}
+
+function parseDecimalComma(val) {
+    return parseFloat(val.replace(',', '.')) || 0;
+}
+
+function modifyGlobalStock(isAdd) {
+    let amt = parseDecimalComma(document.getElementById('adminStockInput').value);
+    if (amt <= 0) return alert("Enter valid positive amount");
+    fuelStock = isAdd ? (fuelStock + amt) : (fuelStock - amt);
+    if (fuelStock < 0) fuelStock = 0;
+    // Firebase save logic here
+    document.getElementById('globalFuelStockDisplay').innerText = fuelStock + " L";
+    document.getElementById('adminStockInput').value = "";
+}
+
+function allocateFuel() {
+    let operator = document.getElementById('fuelOperatorSelect').value;
+    let amt = parseDecimalComma(document.getElementById('fuelAllocateInput').value);
+    
+    if (!fuelWallets[operator]) fuelWallets[operator] = { added: 0, used: 0 };
+    
+    if (amt > 0 && fuelStock < amt) {
+        return alert("Not enough global stock! Blocked.");
+    }
+    if (amt < 0 && Math.abs(amt) > fuelWallets[operator].added) {
+        return alert("Cannot take back more than operator's total added.");
+    }
+    
+    fuelStock -= amt; // Negative amt adds back to stock
+    fuelWallets[operator].added += amt;
+    
+    // Firebase update here (fuelWallets + fuelStock)
+    document.getElementById('globalFuelStockDisplay').innerText = fuelStock + " L";
+    document.getElementById('fuelAllocateInput').value = "";
+    alert(`Successfully allocated ${amt}L to ${operator}.`);
+    openFuelDashboard(); // refresh
+}
+
+// PG INVOICE COLUMNS LOGIC
+function openPgInvoiceColumns() {
+    let tbody = document.getElementById('invoiceColumnsTableBody');
+    tbody.innerHTML = '';
+    savedColumns.forEach((col, idx) => {
+        tbody.innerHTML += `
+            <tr>
+                <td><input type="number" class="form-control form-control-sm" value="${idx + 1}" onchange="reorderColumn(${idx}, this.value)"></td>
+                <td><input type="text" class="form-control form-control-sm" value="${col.name}" id="colName_${idx}"></td>
+                <td><input type="text" class="form-control form-control-sm" value="${col.formula}" id="colForm_${idx}"></td>
+                <td><button class="btn btn-sm btn-danger w-100" onclick="deleteInvoiceColumn(${idx})">🗑️</button></td>
+            </tr>
+        `;
+    });
+    new bootstrap.Modal(document.getElementById('pgInvoiceColumnsModal')).show();
+}
+
+function addInvoiceColumn() {
+    savedColumns.push({name: "NEW COLUMN", formula: ""});
+    openPgInvoiceColumns();
+}
+
+function deleteInvoiceColumn(idx) {
+    savedColumns.splice(idx, 1);
+    openPgInvoiceColumns();
+}
+
+function reorderColumn(oldIdx, newIdxText) {
+    let newIdx = parseInt(newIdxText) - 1;
+    if(newIdx >= 0 && newIdx < savedColumns.length) {
+        let item = savedColumns.splice(oldIdx, 1)[0];
+        savedColumns.splice(newIdx, 0, item);
+        openPgInvoiceColumns();
+    }
+}
+
+function resetInvoiceColumns() {
+    savedColumns = JSON.parse(JSON.stringify(defaultColumns));
+    openPgInvoiceColumns();
+}
+
+function saveInvoiceColumns() {
+    savedColumns.forEach((col, idx) => {
+        col.name = document.getElementById(`colName_${idx}`).value;
+        col.formula = document.getElementById(`colForm_${idx}`).value;
+    });
+    localStorage.setItem("pgInvoiceColumns", JSON.stringify(savedColumns));
+    alert("Columns saved successfully!");
+}
+
+// Placeholder for boot
+document.addEventListener('DOMContentLoaded', () => {
+    // Initial fetch, setups
+});
+</script>
+</body>
+</html>
